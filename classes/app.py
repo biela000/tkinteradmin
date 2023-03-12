@@ -243,7 +243,7 @@ class App:
 
         self.root = Tk()
         self.root.title("TkinterAdmin")
-        self.root.geometry("1200x800")
+        self.root.geometry("1200x600")
         self.root.resizable(False, False)
 
         self.create_widgets()
@@ -279,7 +279,8 @@ class App:
 
         # Get the table content and headers, display them in a table-like presentation
         self.table_frame = Frame(self.root)
-        self.table_frame.pack()
+        # Set a max width for the table frame
+        self.table_frame.pack(fill="none", expand=False)
 
         self.set_new_table()
         self.table.trace("w", lambda *args: self.set_new_table())
@@ -354,13 +355,16 @@ class App:
 
         # Display the data in a Treeview widget
         if len(self.table_data) > 0:
-            self.table_data_display = ttk.Treeview(self.table_frame, columns=self.table_data[0], show="headings")
+            self.table_data_display = ttk.Treeview(self.table_frame, height=10,columns=self.table_data[0], show="headings")
 
             for column in self.table_data[0]:
                 self.table_data_display.heading(column, text=column)
 
             for row in self.table_data[1]:
                 self.table_data_display.insert("", "end", values=row)
+
+            for column in self.table_data[0]:
+                self.table_data_display.column(column, width=1000 // len(self.table_data[0]))
 
             self.table_data_display.pack()
 
@@ -392,9 +396,14 @@ class App:
         # The user can save the table and its columns
         self.table_create_window = Toplevel(self.root)
         self.table_create_window.title("Create table")
+        self.table_create_window.grab_set()
+        self.table_create_window.focus_set()
+        self.table_create_window.minsize(500, 500)
 
         self.table_create_frame = Frame(self.table_create_window)
         self.table_create_frame.pack()
+
+        Label(self.table_create_frame, text="Table name:").pack()
 
         self.table_create_name = Entry(self.table_create_frame)
         self.table_create_name.pack()
@@ -499,7 +508,7 @@ class App:
             columns.append(self.table_create_tree.item(row)["values"])
         column_string = ""
         for column in columns:
-            column_string += column[0] + " " + column[1]
+            column_string += "`" + column[0] + "`" + " " + column[1]
             if column[2] != 0:
                 column_string += " NOT NULL"
             if column[3] != 0 and column[4] == 0:
@@ -516,25 +525,28 @@ class App:
             self.set_new_option_menu("table")
 
     def handle_table_record_create(self):
+        if self.table.get() == "":
+            messagebox.showerror("Error", "Please select a table.")
+            return
         # Show a window to create a new record with all the columns of the currently selected table
         self.table_record_create_window = Toplevel(self.root)
         self.table_record_create_window.title("Create record")
-        self.table_record_create_window.resizable(False, False)
         self.table_record_create_window.grab_set()
         self.table_record_create_window.focus_set()
+        self.table_record_create_window.minsize(300, 300)
 
         self.table_record_create_frame = Frame(self.table_record_create_window)
-        self.table_record_create_frame.pack()
+        self.table_record_create_frame.pack(padx=50, pady=10)
 
         # Create inputs for each column of treeview widget
         self.table_record_create_inputs = []
         for column in self.table_data_display["columns"]:
-            Label(self.table_record_create_frame, text=column).grid(row=0, column=self.table_data_display["columns"].index(column))
+            Label(self.table_record_create_frame, text=column).pack()
             self.table_record_create_inputs.append(Entry(self.table_record_create_frame))
-            self.table_record_create_inputs[-1].grid(row=1, column=self.table_data_display["columns"].index(column))
+            self.table_record_create_inputs[-1].pack()
 
         # Create a button to save the record
-        Button(self.table_record_create_frame, text="Save", command=self.handle_table_record_create_save).grid(row=2, column=0, columnspan=2)
+        Button(self.table_record_create_frame, text="Save", command=self.handle_table_record_create_save).pack()
 
     def handle_table_record_create_save(self):
         # Save the record to the database
@@ -552,7 +564,19 @@ class App:
             messagebox.showerror("Error", "The record could not be created.")
 
     def handle_table_record_update(self):
-        pass
+        # Execute the same code as the create record function and then fill in the values of the selected record
+        if self.table_data_display is None:
+            messagebox.showerror("Error", "Please select a table.")
+            return
+        selected = self.table_data_display.selection()
+        if len(selected) > 0:
+            self.handle_table_record_create()
+            self.table_record_create_window.title("Update record")
+            values = self.table_data_display.item(selected[0])["values"]
+            for i in range(len(values)):
+                self.table_record_create_inputs[i].insert(0, values[i])
+        else:
+            messagebox.showerror("Error", "Please select a record.")
 
     def handle_table_record_delete(self):
         # Get selected record from the table treeview widget

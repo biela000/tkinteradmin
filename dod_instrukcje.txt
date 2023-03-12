@@ -1,0 +1,2 @@
+Aby zmienić serwer MySQL, z którym program się łączy, należy zmodyfikować funkcję get_connection() w classes/dbutils.py.
+Program został przesłany bez folderu venv. Aby go uruchomić, należy odpalić plik main.py, z zainstalowany pipem packagem mysql-connector-python.

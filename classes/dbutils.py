@@ -68,9 +68,8 @@ class DbUtils:
         try:
             # Get every row from the table and return them
             cursor = connection.cursor()
-            print(table)
 
-            cursor.execute("SELECT * FROM {}".format(table))
+            cursor.execute("SELECT * FROM `{}`".format(table))
             content = cursor.fetchall()
             headers = [header[0] for header in cursor.description]
 
@@ -88,7 +87,7 @@ class DbUtils:
             # Create a new database
             cursor = connection.cursor()
 
-            cursor.execute("CREATE DATABASE {}".format(database))
+            cursor.execute("CREATE DATABASE `{}`".format(database))
 
             # Close the connection
             cursor.close()
@@ -104,7 +103,7 @@ class DbUtils:
             # Delete a database
             cursor = connection.cursor()
 
-            cursor.execute("DROP DATABASE {}".format(database))
+            cursor.execute("DROP DATABASE `{}`".format(database))
 
             # Close the connection
             cursor.close()
@@ -120,9 +119,10 @@ class DbUtils:
             # Create a new table
             cursor = connection.cursor()
 
-            executed_string = "CREATE TABLE {} ({})".format(table, columns)
+            executed_string = "CREATE TABLE `{}` ({})".format(table, columns)
+            print(executed_string)
 
-            cursor.execute("CREATE TABLE {} ({})".format(table, columns))
+            cursor.execute("CREATE TABLE `{}` ({})".format(table, columns))
 
             # Close the connection
             cursor.close()
@@ -138,7 +138,7 @@ class DbUtils:
             # Delete a table
             cursor = connection.cursor()
 
-            cursor.execute("DROP TABLE {}".format(table))
+            cursor.execute("DROP TABLE `{}`".format(table))
 
             # Close the connection
             cursor.close()
@@ -157,7 +157,7 @@ class DbUtils:
             columns_string = ""
 
             for column in columns:
-                columns_string += column + ", "
+                columns_string += "`" + column + "`" + ", "
 
             columns_string = columns_string[:-2]
 
@@ -170,7 +170,7 @@ class DbUtils:
             print(columns_string)
             print(values_string)
 
-            cursor.execute("INSERT INTO {} ({}) VALUES ({})".format(table, columns_string, values_string))
+            cursor.execute("INSERT INTO `{}` ({}) VALUES ({})".format(table, columns_string, values_string))
 
             connection.commit()
 
@@ -191,11 +191,11 @@ class DbUtils:
             condition = ""
 
             for i in range(len(columns)):
-                condition += columns[i] + " = \'" + str(values[i]) + "\' AND "
+                condition += "`" + columns[i] + "`" + " = \'" + str(values[i]) + "\' AND "
 
             condition = condition[:-5]
 
-            cursor.execute("DELETE FROM {} WHERE {} LIMIT 1".format(table, condition))
+            cursor.execute("DELETE FROM `{}` WHERE {} LIMIT 1".format(table, condition))
 
             connection.commit()
 
