@@ -147,3 +147,62 @@ class DbUtils:
         except mysql.connector.Error as err:
             print(err)
             return None
+
+    @staticmethod
+    def insert_row(connection, table, columns, values):
+        try:
+            # Insert a row into a table
+            cursor = connection.cursor()
+
+            columns_string = ""
+
+            for column in columns:
+                columns_string += column + ", "
+
+            columns_string = columns_string[:-2]
+
+            values_string = ""
+
+            for value in values:
+                values_string += "\'" + value + "\', "
+
+            values_string = values_string[:-2]
+            print(columns_string)
+            print(values_string)
+
+            cursor.execute("INSERT INTO {} ({}) VALUES ({})".format(table, columns_string, values_string))
+
+            connection.commit()
+
+            # Close the connection
+            cursor.close()
+
+            return True
+        except mysql.connector.Error as err:
+            print(err)
+            return None
+
+    @staticmethod
+    def delete_row(connection, table, columns, values):
+        try:
+            # Delete a row from a table
+            cursor = connection.cursor()
+
+            condition = ""
+
+            for i in range(len(columns)):
+                condition += columns[i] + " = \'" + str(values[i]) + "\' AND "
+
+            condition = condition[:-5]
+
+            cursor.execute("DELETE FROM {} WHERE {} LIMIT 1".format(table, condition))
+
+            connection.commit()
+
+            # Close the connection
+            cursor.close()
+
+            return True
+        except mysql.connector.Error as err:
+            print(err)
+            return None

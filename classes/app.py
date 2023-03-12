@@ -45,6 +45,27 @@ def get_table_options(database):
     return tables
 
 
+def insert_record(database, table, columns, values):
+    # Connect to the MySql server's specified database
+    connection = DbUtils.get_connection(user="root", password="", host="localhost", database=database)
+
+    # If the connection is unsuccessful, return False
+    if connection is None:
+        return False
+
+    # If the connection is successful, insert the record and return True
+    result = DbUtils.insert_row(connection, table, columns, values)
+
+    # If the statement is unsuccessful, return False
+    if result is None:
+        return False
+
+    # Close the connection
+    connection.close()
+
+    return True
+
+
 def get_table(database, table):
     # Connect to the MySql server's specified database
     connection = DbUtils.get_connection(user="root", password="", host="localhost", database=database)
@@ -151,6 +172,27 @@ def delete_table(database, table):
     return True
 
 
+def delete_record(database, table, columns, values):
+    # Connect to the MySql server's specified database
+    connection = DbUtils.get_connection(user="root", password="", host="localhost", database=database)
+
+    # If the connection is unsuccessful, return False
+    if connection is None:
+        return False
+
+    # If the connection is successful, delete the record and return True
+    result = DbUtils.delete_row(connection, table, columns, values)
+
+    # If the statement is unsuccessful, return False
+    if result is None:
+        return False
+
+    # Close the connection
+    connection.close()
+
+    return True
+
+
 class App:
     def __init__(self):
         # Frame for database and table selection
@@ -170,6 +212,7 @@ class App:
         # Table data and its frame
         self.table_data = None
         self.table_frame = None
+        self.table_data_display = None
 
         # Frame for action buttons
         self.action_frame = None
@@ -189,6 +232,14 @@ class App:
         self.table_create_window = None
         self.table_create_tree = None
         self.table_create_property_frame = None
+
+        # Record action frame
+        self.table_records_action_frame = None
+
+        # Record window
+        self.table_record_create_window = None
+        self.table_record_create_frame = None
+        self.table_record_create_inputs = []
 
         self.root = Tk()
         self.root.title("TkinterAdmin")
@@ -247,6 +298,16 @@ class App:
         Button(self.action_frame, text="Create", command=self.handle_table_create).grid(row=1, column=1)
         Button(self.action_frame, text="Delete", command=self.handle_table_delete).grid(row=2, column=1)
 
+        # Frame for table's records action buttons
+        self.table_records_action_frame = Frame(self.root)
+        self.table_records_action_frame.pack()
+
+        # Table's records action buttons
+        Label(self.table_records_action_frame, text="Table's records").grid(row=0, column=0)
+        Button(self.table_records_action_frame, text="Create", command=self.handle_table_record_create).grid(row=1, column=0)
+        Button(self.table_records_action_frame, text="Update", command=self.handle_table_record_update).grid(row=2, column=0)
+        Button(self.table_records_action_frame, text="Delete", command=self.handle_table_record_delete).grid(row=3, column=0)
+
     def set_new_option_menu(self, table_type):
         # If the table type is database, create a new database dropdown menu
         # If the table type is table, create a new table dropdown menu
@@ -293,15 +354,15 @@ class App:
 
         # Display the data in a Treeview widget
         if len(self.table_data) > 0:
-            table = ttk.Treeview(self.table_frame, columns=self.table_data[0], show="headings")
+            self.table_data_display = ttk.Treeview(self.table_frame, columns=self.table_data[0], show="headings")
 
             for column in self.table_data[0]:
-                table.heading(column, text=column)
+                self.table_data_display.heading(column, text=column)
 
             for row in self.table_data[1]:
-                table.insert("", "end", values=row)
+                self.table_data_display.insert("", "end", values=row)
 
-            table.pack()
+            self.table_data_display.pack()
 
     def handle_database_create(self):
         # Create a new database with a name that the user inputs
@@ -453,7 +514,58 @@ class App:
             self.table_create_window.destroy()
             self.table_options = get_table_options(self.database.get())
             self.set_new_option_menu("table")
+
+    def handle_table_record_create(self):
+        # Show a window to create a new record with all the columns of the currently selected table
+        self.table_record_create_window = Toplevel(self.root)
+        self.table_record_create_window.title("Create record")
+        self.table_record_create_window.resizable(False, False)
+        self.table_record_create_window.grab_set()
+        self.table_record_create_window.focus_set()
+
+        self.table_record_create_frame = Frame(self.table_record_create_window)
+        self.table_record_create_frame.pack()
+
+        # Create inputs for each column of treeview widget
+        self.table_record_create_inputs = []
+        for column in self.table_data_display["columns"]:
+            Label(self.table_record_create_frame, text=column).grid(row=0, column=self.table_data_display["columns"].index(column))
+            self.table_record_create_inputs.append(Entry(self.table_record_create_frame))
+            self.table_record_create_inputs[-1].grid(row=1, column=self.table_data_display["columns"].index(column))
+
+        # Create a button to save the record
+        Button(self.table_record_create_frame, text="Save", command=self.handle_table_record_create_save).grid(row=2, column=0, columnspan=2)
+
+    def handle_table_record_create_save(self):
+        # Save the record to the database
+        values = []
+        for record_entry in self.table_record_create_inputs:
+            if record_entry.get() == "":
+                values.append("")
+            else:
+                values.append(record_entry.get())
+        if insert_record(self.database.get(), self.table.get(), self.table_data_display["columns"], values):
+            self.table_record_create_window.destroy()
+            # Refresh the table data by simulating a change in the table option menu
+            self.table.set(self.table.get())
+        else:
+            messagebox.showerror("Error", "The record could not be created.")
+
+    def handle_table_record_update(self):
         pass
+
+    def handle_table_record_delete(self):
+        # Get selected record from the table treeview widget
+        selected = self.table_data_display.selection()
+        if len(selected) > 0:
+            # Get the values of the selected record
+            values = self.table_data_display.item(selected[0])["values"]
+            # Delete the record from the database
+            if delete_record(self.database.get(), self.table.get(), self.table_data_display["columns"], values):
+                # Refresh the table data by simulating a change in the table option menu
+                self.table.set(self.table.get())
+            else:
+                messagebox.showerror("Error", "The record could not be deleted.")
 
     def run(self):
         self.root.mainloop()
